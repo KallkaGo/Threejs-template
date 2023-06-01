@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "lil-gui": "^0.17.0",
-    "three": "^0.148.0"
+    "three": "^0.148.0",
+    "vite-plugin-glsl": "^1.1.2"
   }
 }
