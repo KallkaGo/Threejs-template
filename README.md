@@ -16,7 +16,7 @@ threejs模板(开发学习用)
 
 **6.时钟**
 
-#### 2.使用方法
+### 2.使用方法
 
 ```bash
 # Install dependencies (only the first time)
