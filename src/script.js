@@ -17,6 +17,16 @@ const canvas = document.querySelector('canvas.webgl')
 // Scene
 const scene = new THREE.Scene()
 
+/* 
+Light
+*/
+const ambientLight = new THREE.AmbientLight('gray',0.6)
+scene.add(ambientLight)
+
+const dirctionLight = new THREE.DirectionalLight('white',0.5)
+scene.add(dirctionLight)
+
+
 /**
  * Loader
  */
