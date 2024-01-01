@@ -94,8 +94,7 @@ const renderer = new THREE.WebGLRenderer({
 })
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-renderer.toneMapping = THREE.ACESFilmicToneMapping
-renderer.outputEncoding = THREE.sRGBEncoding
+renderer.outputColorSpace = THREE.SRGBColorSpace
 
 /**
  * Animate
