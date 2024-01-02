@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import * as dat from 'lil-gui'
 import vertexShader from './shader/vertex.glsl'
 import fragmentShader from './shader/fragment.glsl'
@@ -20,10 +21,10 @@ const scene = new THREE.Scene()
 /* 
 Light
 */
-const ambientLight = new THREE.AmbientLight('gray',0.6)
+const ambientLight = new THREE.AmbientLight('gray', 0.6)
 scene.add(ambientLight)
 
-const dirctionLight = new THREE.DirectionalLight('white',0.5)
+const dirctionLight = new THREE.DirectionalLight('white', 0.5)
 scene.add(dirctionLight)
 
 
@@ -32,7 +33,7 @@ scene.add(dirctionLight)
  */
 const textureLoader = new THREE.TextureLoader()
 const fbxLoader = new FBXLoader()
-
+const gltfLoader = new GLTFLoader()
 /**
  * Test mesh
  */
