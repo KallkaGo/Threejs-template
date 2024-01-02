@@ -1,10 +1,21 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { GPUComputationRenderer } from 'three/examples/jsm/misc/GPUComputationRenderer'
+import Stats from 'three/examples/jsm/libs/stats.module'
 import * as dat from 'lil-gui'
 import vertexShader from './shader/vertex.glsl'
 import fragmentShader from './shader/fragment.glsl'
-import compute from './shader/compute.glsl'
+import computeShader from './shader/compute.glsl'
+import VConsole from 'vconsole'
+
+const vConsole = new VConsole()
+
+const width = 1000
+const pointscount = width ** 2
+const size = 1
+
 
 /**
  * Base
@@ -27,6 +38,42 @@ scene.add(ambientLight)
 const dirctionLight = new THREE.DirectionalLight('white', 0.5)
 scene.add(dirctionLight)
 
+
+
+/**
+ * Loader
+ */
+const textureLoader = new THREE.TextureLoader()
+const fbxLoader = new FBXLoader()
+const gltfLoader = new GLTFLoader()
+
+const stats = new Stats()
+
+document.body.appendChild(stats.dom)
+
+let points
+
+gltfLoader.load('/houzi.glb', (gltf) => {
+
+    const model = gltf.scene.children[0]
+
+    // scene.add(gltf.scene)
+
+    initComputeRenderer(model)
+
+    initPoints(model)
+
+})
+
+
+
+
+
+
+
+
+
+// scene.add(mesh)
 
 /**
  * Sizes
@@ -54,8 +101,8 @@ window.addEventListener('resize', () => {
  * Camera
  */
 // Base camera
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.set(0.25, - 0.25, 1)
+const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000)
+camera.position.set(6, 4, 5)
 scene.add(camera)
 
 // Controls
@@ -67,78 +114,117 @@ controls.enableDamping = true
  */
 const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
-    antialias: true
+    // antialias: true
 })
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-renderer.toneMapping = THREE.ACESFilmicToneMapping
-renderer.outputColorSpace = THREE.SRGBColorSpace
 
 
-/* 
-GPGPU
-*/
-const width = 1000
-const size = 256
-const count = width ** 2
 
-const gpgpu = new GPUComputationRenderer(width, width, renderer)
 
-const dtPos = gpgpu.createTexture()
-const data = dtPos.image.data
+/* GPGPU */
 
-for (let i = 0; i < data.length; i++) {
-    data[i * 4 + 0] = THREE.MathUtils.randFloatSpread(size)
-    data[i * 4 + 1] = THREE.MathUtils.randFloatSpread(size)
-    data[i * 4 + 2] = THREE.MathUtils.randFloatSpread(size)
-    data[i * 4 + 3] = 1
-}
 
-let dtPosVar = gpgpu.addVariable('texturePosition', compute, dtPos)
+let gpuCompute
+let positionVariable
 
-dtPosVar.wrapS = THREE.RepeatWrapping
-dtPosVar.wrapT = THREE.RepeatWrapping
+const initComputeRenderer = () => {
 
-gpgpu.init()
+    gpuCompute = new GPUComputationRenderer(width, width, renderer)
+    const posDt = gpuCompute.createTexture()
+    const data = posDt.image.data
 
-const pointsGeo = new THREE.BufferGeometry()
-const positions = new Float32Array(count * 3)
-const references = new Float32Array(count * 2)
-for (let i = 0; i < width; i++) {
-    for (let j = 0; j < width; j++) {
-        const idx = i + j * width
-        positions[idx * 3 + 0] = Math.random()
-        positions[idx * 3 + 1] = Math.random()
-        positions[idx * 3 + 2] = Math.random()
-        references[idx * 2 + 0] = i / width
-        references[idx * 2 + 1] = j / width
+    let toIndex = 0
+
+    for (let i = 0; i < data.length; i++) {
+
+        toIndex %= data.length
+
+        data[i * 4 + 0] = THREE.MathUtils.randFloatSpread(size)
+        data[i * 4 + 1] = THREE.MathUtils.randFloatSpread(size)
+        data[i * 4 + 2] = THREE.MathUtils.randFloatSpread(size)
+        data[i * 4 + 3] = 1
     }
+
+
+    positionVariable = gpuCompute.addVariable('texturePosition', computeShader, posDt)
+
+    gpuCompute.setVariableDependencies(positionVariable, [positionVariable])
+
+    positionVariable.wrapS = THREE.RepeatWrapping
+    positionVariable.wrapT = THREE.RepeatWrapping
+
+    gpuCompute.init()
+
 }
-pointsGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3))
-pointsGeo.setAttribute("reference", new THREE.BufferAttribute(references, 2))
 
-const pointsMat = new THREE.ShaderMaterial({
-    vertexShader: vertexShader,
-    fragmentShader: fragmentShader,
-    uniforms: {
-        texturePosition: {
-            value: null,
-        },
-        uPointSize: {
-            value: 1,
-        },
-        uPixelRatio: {
-            value: window.devicePixelRatio,
-        },
-    },
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-})
+const initPoints = (model) => {
+    model.geometry.scale(5, 5, 5)
+    const {array,count} = model.geometry.getAttribute('position')
 
-const points = new THREE.Points(pointsGeo, pointsMat)
+    const pointsgeometry = new THREE.BufferGeometry()
+    const pointsmaterial = new THREE.ShaderMaterial({
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
+        uniforms: {
+            texturePosition: {
+                value: null,
+            },
+            uPointSize: {
+                value: 2,
+            },
+            uPixelRatio: {
+                value: window.devicePixelRatio,
+            },
+            uProgress: {
+                value: 0
+            }
+        },
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+    })
 
-scene.add(points)
+    const positions = new Float32Array(pointscount * 3)
+    const references = new Float32Array(pointscount * 2)
+    for (let i = 0; i < width; i++) {
+        for (let j = 0; j < width; j++) {
+            const idx = i + j * width
+            positions[idx * 3 + 0] = Math.random()
+            positions[idx * 3 + 1] = Math.random()
+            positions[idx * 3 + 2] = Math.random()
+            references[idx * 2 + 0] = i / width
+            references[idx * 2 + 1] = j / width
+        }
+    }
+
+    let toIndex = 0
+    const toPos = new Float32Array(pointscount * 3)
+    for (let i = 0; i < pointscount; i++) {
+        toIndex %= count
+        const toIndex3 = toIndex * 3
+        const i3 = i * 3
+        toPos[i3] = array[toIndex3]
+        toPos[i3 + 1] = array[toIndex3 + 1]
+        toPos[i3 + 2] = array[toIndex3 + 2]
+        toIndex++
+    }
+
+    console.log('pos',toPos);
+
+    pointsgeometry.setAttribute('toPos', new THREE.BufferAttribute(toPos, 3))
+    pointsgeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3))
+    pointsgeometry.setAttribute("reference", new THREE.BufferAttribute(references, 2))
+
+
+
+    points = new THREE.Points(pointsgeometry, pointsmaterial)
+    scene.add(points)
+}
+
+
+
+
 
 
 /**
@@ -147,14 +233,22 @@ scene.add(points)
 const clock = new THREE.Clock()
 
 const tick = () => {
+
+    stats.update()
+
     const elapsedTime = clock.getElapsedTime()
+
+    if (gpuCompute) {
+        gpuCompute.compute()
+        points.material.uniforms.texturePosition.value = gpuCompute.getCurrentRenderTarget(positionVariable).texture
+        points.material.uniforms.uProgress.value = elapsedTime * 0.1
+    }
 
     // Update controls
     controls.update()
 
-    gpgpu.compute()
 
-    points.material.uniforms.texturePosition.value = gpgpu.getCurrentRenderTarget(dtPosVar).texture
+
     // Render
     renderer.render(scene, camera)
 
