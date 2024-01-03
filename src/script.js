@@ -8,11 +8,9 @@ import * as dat from 'lil-gui'
 import vertexShader from './shader/vertex.glsl'
 import fragmentShader from './shader/fragment.glsl'
 import computeShader from './shader/compute.glsl'
-import VConsole from 'vconsole'
+import gsap from 'gsap'
 
-const vConsole = new VConsole()
-
-const width = 1000
+const width = 2000
 const pointscount = width ** 2
 const size = 1
 
@@ -102,7 +100,7 @@ window.addEventListener('resize', () => {
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000)
-camera.position.set(6, 4, 5)
+camera.position.set(0, 4, 5)
 scene.add(camera)
 
 // Controls
@@ -159,8 +157,8 @@ const initComputeRenderer = () => {
 }
 
 const initPoints = (model) => {
-    model.geometry.scale(5, 5, 5)
-    const {array,count} = model.geometry.getAttribute('position')
+    model.geometry.scale(2, 2, 2)
+    const { array, count } = model.geometry.getAttribute('position')
 
     const pointsgeometry = new THREE.BufferGeometry()
     const pointsmaterial = new THREE.ShaderMaterial({
@@ -177,6 +175,12 @@ const initPoints = (model) => {
                 value: window.devicePixelRatio,
             },
             uProgress: {
+                value: 0
+            },
+            uTime: {
+                value: 0
+            },
+            uRadius: {
                 value: 0
             }
         },
@@ -210,7 +214,7 @@ const initPoints = (model) => {
         toIndex++
     }
 
-    console.log('pos',toPos);
+    console.log('pos', toPos)
 
     pointsgeometry.setAttribute('toPos', new THREE.BufferAttribute(toPos, 3))
     pointsgeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3))
@@ -220,6 +224,36 @@ const initPoints = (model) => {
 
     points = new THREE.Points(pointsgeometry, pointsmaterial)
     scene.add(points)
+
+
+    const param = {
+        time: 0,
+        progress: 0,
+        radius: 3
+    }
+
+    gsap.to(param, {
+        progress: 1,
+        radius: 1,
+        duration: 4,
+        ease: 'power2.inOut',
+        onUpdate: () => {
+            points.material.uniforms.uTime.value = param.progress
+            points.material.uniforms.uRadius.value = param.radius
+        },
+        onComplete: () => {
+            gsap.to(param, {
+                time: 1,
+                duration: 2,
+                ease: 'power1.inOut',
+                onUpdate: () => {
+                    points.material.uniforms.uProgress.value = param.time
+                }
+            })
+        }
+    })
+
+
 }
 
 
@@ -241,7 +275,7 @@ const tick = () => {
     if (gpuCompute) {
         gpuCompute.compute()
         points.material.uniforms.texturePosition.value = gpuCompute.getCurrentRenderTarget(positionVariable).texture
-        points.material.uniforms.uProgress.value = elapsedTime * 0.1
+        // points.material.uniforms.uProgress.value = elapsedTime * 0.1
     }
 
     // Update controls
