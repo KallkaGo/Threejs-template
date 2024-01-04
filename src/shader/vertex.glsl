@@ -2,13 +2,15 @@ uniform float uPointSize;
 uniform float uPixelRatio;
 uniform float uRadius;
 uniform sampler2D texturePosition;
+uniform sampler2D toPosition;
 uniform float uProgress;
 uniform float uTime;
 attribute vec2 reference;
-attribute vec3 toPos;
+
 
 void main() {
   vec3 p = texture(texturePosition, reference).xyz;
+  vec3 toPos = texture(toPosition, reference).xyz;
   vec3 dis = toPos - p;
   float percent = uProgress;
   vec3 pos;

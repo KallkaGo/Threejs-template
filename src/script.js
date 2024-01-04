@@ -8,9 +8,11 @@ import * as dat from 'lil-gui'
 import vertexShader from './shader/vertex.glsl'
 import fragmentShader from './shader/fragment.glsl'
 import computeShader from './shader/compute.glsl'
+import computeShader2 from './shader/compute2.glsl'
 import gsap from 'gsap'
 
-const width = 2000
+
+const width = 500
 const pointscount = width ** 2
 const size = 1
 
@@ -30,10 +32,10 @@ const scene = new THREE.Scene()
 /* 
 Light
 */
-const ambientLight = new THREE.AmbientLight('gray', 0.6)
-scene.add(ambientLight)
+// const ambientLight = new THREE.AmbientLight('gray', 0.6)
+// scene.add(ambientLight)
 
-const dirctionLight = new THREE.DirectionalLight('white', 0.5)
+const dirctionLight = new THREE.DirectionalLight('white', 1)
 scene.add(dirctionLight)
 
 
@@ -100,7 +102,7 @@ window.addEventListener('resize', () => {
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000)
-camera.position.set(0, 4, 5)
+camera.position.set(0, 2, 5)
 scene.add(camera)
 
 // Controls
@@ -125,40 +127,83 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
 let gpuCompute
 let positionVariable
+let toPositionVariable
 
-const initComputeRenderer = () => {
+const param = {
+    progress: 0
+}
+
+const initComputeRenderer = (model) => {
+
+    model.geometry.scale(2, 2, 2)
+    const { array, count } = model.geometry.getAttribute('position')
 
     gpuCompute = new GPUComputationRenderer(width, width, renderer)
     const posDt = gpuCompute.createTexture()
     const data = posDt.image.data
 
+    const radius = size
+
+    const toPosDt = gpuCompute.createTexture()
+    const toData = toPosDt.image.data
     let toIndex = 0
 
     for (let i = 0; i < data.length; i++) {
 
-        toIndex %= data.length
+        const theta = Math.random() * Math.PI * 2 // 随机生成极角
+        const phi = Math.acos(2 * Math.random() - 1) // 随机生成极径的余弦值，确保均匀分布在球体表面
 
-        data[i * 4 + 0] = THREE.MathUtils.randFloatSpread(size)
-        data[i * 4 + 1] = THREE.MathUtils.randFloatSpread(size)
-        data[i * 4 + 2] = THREE.MathUtils.randFloatSpread(size)
+        // 将球坐标转换为直角坐标
+        data[i * 4 + 0] = radius * Math.sin(phi) * Math.cos(theta)
+        data[i * 4 + 1] = radius * Math.sin(phi) * Math.sin(theta)
+        data[i * 4 + 2] = radius * Math.cos(phi)
         data[i * 4 + 3] = 1
+        // data[i * 4 + 0] = THREE.MathUtils.randFloatSpread(size)
+        // data[i * 4 + 1] = THREE.MathUtils.randFloatSpread(size)
+        // data[i * 4 + 2] = THREE.MathUtils.randFloatSpread(size)
+
+        toIndex %= count
+        const toIndex3 = toIndex * 3
+        const i4 = i * 4
+        toData[i4] = array[toIndex3]
+        toData[i4 + 1] = array[toIndex3 + 1]
+        toData[i4 + 2] = array[toIndex3 + 2]
+        toData[i4 + 3] = 1
+        toIndex++
     }
 
+    toPositionVariable = gpuCompute.addVariable('toPosition', computeShader2, toPosDt)
 
     positionVariable = gpuCompute.addVariable('texturePosition', computeShader, posDt)
 
-    gpuCompute.setVariableDependencies(positionVariable, [positionVariable])
+    positionVariable.material.uniforms.uTime = { value: 0 }
+
+    gpuCompute.setVariableDependencies(positionVariable, [positionVariable, toPositionVariable])
+
+    gpuCompute.setVariableDependencies(toPositionVariable, [positionVariable, toPositionVariable])
+
+    toPositionVariable.wrapS = THREE.RepeatWrapping
+    toPositionVariable.wrapT = THREE.RepeatWrapping
 
     positionVariable.wrapS = THREE.RepeatWrapping
     positionVariable.wrapT = THREE.RepeatWrapping
 
     gpuCompute.init()
 
+
 }
 
+const paramColor = {
+    color: new THREE.Color("#c9a573"),
+}
+
+gui.addColor(paramColor, 'color').onChange(() => {
+    points.material.uniforms.uColor.value = paramColor.color
+})
+
 const initPoints = (model) => {
-    model.geometry.scale(2, 2, 2)
-    const { array, count } = model.geometry.getAttribute('position')
+    // model.geometry.scale(2, 2, 2)
+    // const { array, count } = model.geometry.getAttribute('position')
 
     const pointsgeometry = new THREE.BufferGeometry()
     const pointsmaterial = new THREE.ShaderMaterial({
@@ -167,6 +212,9 @@ const initPoints = (model) => {
         uniforms: {
             texturePosition: {
                 value: null,
+            },
+            toPosition: {
+                value: null
             },
             uPointSize: {
                 value: 2,
@@ -182,10 +230,13 @@ const initPoints = (model) => {
             },
             uRadius: {
                 value: 0
+            },
+            uColor: {
+                value: paramColor.color
             }
         },
         transparent: true,
-        blending: THREE.AdditiveBlending,
+        // blending: THREE.MultiplyBlending,
         depthWrite: false,
     })
 
@@ -202,21 +253,20 @@ const initPoints = (model) => {
         }
     }
 
-    let toIndex = 0
-    const toPos = new Float32Array(pointscount * 3)
-    for (let i = 0; i < pointscount; i++) {
-        toIndex %= count
-        const toIndex3 = toIndex * 3
-        const i3 = i * 3
-        toPos[i3] = array[toIndex3]
-        toPos[i3 + 1] = array[toIndex3 + 1]
-        toPos[i3 + 2] = array[toIndex3 + 2]
-        toIndex++
-    }
+    // let toIndex = 0
+    // const toPos = new Float32Array(pointscount * 3)
+    // for (let i = 0; i < pointscount; i++) {
+    //     toIndex %= count
+    //     const toIndex3 = toIndex * 3
+    //     const i3 = i * 3
+    //     toPos[i3] = array[toIndex3]
+    //     toPos[i3 + 1] = array[toIndex3 + 1]
+    //     toPos[i3 + 2] = array[toIndex3 + 2]
+    //     toIndex++
+    // }
 
-    console.log('pos', toPos)
 
-    pointsgeometry.setAttribute('toPos', new THREE.BufferAttribute(toPos, 3))
+    // pointsgeometry.setAttribute('toPos', new THREE.BufferAttribute(toPos, 3))
     pointsgeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3))
     pointsgeometry.setAttribute("reference", new THREE.BufferAttribute(references, 2))
 
@@ -274,7 +324,9 @@ const tick = () => {
 
     if (gpuCompute) {
         gpuCompute.compute()
+        positionVariable.material.uniforms.uTime.value = elapsedTime
         points.material.uniforms.texturePosition.value = gpuCompute.getCurrentRenderTarget(positionVariable).texture
+        points.material.uniforms.toPosition.value = gpuCompute.getCurrentRenderTarget(toPositionVariable).texture
         // points.material.uniforms.uProgress.value = elapsedTime * 0.1
     }
 
