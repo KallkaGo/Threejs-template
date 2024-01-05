@@ -29,10 +29,10 @@ const scene = new THREE.Scene()
 /* 
 Light
 */
-const ambientLight = new THREE.AmbientLight('gray', 0.6)
-scene.add(ambientLight)
+// const ambientLight = new THREE.AmbientLight('gray', 0.6)
+// scene.add(ambientLight)
 
-const dirctionLight = new THREE.DirectionalLight('white', 0.5)
+const dirctionLight = new THREE.DirectionalLight('white', 1)
 scene.add(dirctionLight)
 
 
@@ -45,8 +45,10 @@ const textureLoader = new THREE.TextureLoader()
 const fbxLoader = new FBXLoader()
 const gltfLoader = new GLTFLoader()
 
-gltfLoader.load('/muyu.glb', (gltf) => {
+gltfLoader.load('/ground.glb', (gltf) => {
     const model = gltf.scene
+    model.scale.setScalar(0.02)
+    model.position.set(2,1,0)
     scene.add(model)
 })
 
@@ -54,6 +56,9 @@ const noiseTex = textureLoader.load('/noise2.png')
 noiseTex.wrapS = THREE.RepeatWrapping
 noiseTex.wrapT = THREE.RepeatWrapping
 
+
+const diffuseTex = textureLoader.load('/tex.jpg')
+diffuseTex.colorSpace = THREE.SRGBColorSpace
 
 /**
  * Test mesh
@@ -63,7 +68,7 @@ const geometry = new THREE.PlaneGeometry(10, 10, 32, 32)
 
 // Material
 const material = new THREE.MeshBasicMaterial({
-    color: 'blue',
+    map: diffuseTex,
     side: THREE.DoubleSide
 })
 
@@ -84,7 +89,7 @@ const depthRt = new THREE.WebGLRenderTarget(512, 512)
 
 const shaderMaterial = new THREE.ShaderMaterial({
     vertexShader: depthvertex,
-    fragmentShader:depthfrag,
+    fragmentShader: fragmentShader,
     uniforms: {
         depthTex: {
             value: depthRt.texture,
@@ -110,6 +115,27 @@ mesh.rotateX(-Math.PI / 2)
 mesh.position.set(0, 0.5, 0)
 mesh.name = 'sea'
 scene.add(mesh)
+
+
+const boxgeo = new THREE.BoxGeometry(1, 1, 10)
+const cubeMesh1 = new THREE.Mesh(boxgeo, material)
+const cubeMesh2 = cubeMesh1.clone()
+const cubeMesh3 = cubeMesh1.clone()
+const cubeMesh4 = cubeMesh1.clone()
+
+
+cubeMesh1.translateX(-5)
+cubeMesh2.translateX(5)
+cubeMesh3.rotateY(Math.PI / 2)
+cubeMesh4.rotateY(Math.PI / 2)
+cubeMesh3.translateX(-5)
+cubeMesh4.translateX(5)
+
+const g = new THREE.Group()
+
+g.add(cubeMesh1, cubeMesh2, cubeMesh3, cubeMesh4)
+g.position.set(0, 0.5, 0)
+scene.add(g)
 
 /**
  * Sizes
@@ -186,18 +212,18 @@ const tick = () => {
 
     shaderMaterial.uniforms.uTime.value = elapsedTime * 10.
 
-    // renderer.setRenderTarget(depthRt)
+    renderer.setRenderTarget(depthRt)
 
     handleDepthMat(false)
     mesh.visible = false
 
-    // renderer.render(scene, camera)
+    renderer.render(scene, camera)
 
-    // renderer.setRenderTarget(null)
+    renderer.setRenderTarget(null)
 
-    // handleDepthMat(true)
+    handleDepthMat(true)
 
-    // mesh.visible = true
+    mesh.visible = true
 
 
     // Render
