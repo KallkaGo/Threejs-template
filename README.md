@@ -24,6 +24,8 @@ threejs模板(开发学习用)
 
 **10.环境光和平行光**
 
+**11.lygia shader library**
+
 ### 2.使用方法
 
 ```bash
