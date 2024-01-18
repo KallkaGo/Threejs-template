@@ -29,30 +29,6 @@ scene.add(dirctionLight)
 
 
 /**
- * Loader
- */
-const textureLoader = new THREE.TextureLoader()
-const fbxLoader = new FBXLoader()
-const gltfLoader = new GLTFLoader()
-/**
- * Test mesh
- */
-// Geometry
-const geometry = new THREE.PlaneGeometry(1, 1, 32, 32)
-
-// Material
-const material = new THREE.MeshBasicMaterial()
-
-const shaderMaterial = new THREE.ShaderMaterial({
-    vertexShader,
-    fragmentShader
-})
-
-// Mesh
-const mesh = new THREE.Mesh(geometry, shaderMaterial)
-scene.add(mesh)
-
-/**
  * Sizes
  */
 const sizes = {
@@ -74,17 +50,51 @@ window.addEventListener('resize', () => {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 })
 
+
+/**
+ * Loader
+ */
+const textureLoader = new THREE.TextureLoader()
+const fbxLoader = new FBXLoader()
+const gltfLoader = new GLTFLoader()
+
+
 /**
  * Camera
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.set(0.25, - 0.25, 1)
+camera.position.set(0, 0, 3)
 scene.add(camera)
 
-// Controls
-const controls = new OrbitControls(camera, canvas)
-controls.enableDamping = true
+/**
+ * Test mesh
+ */
+
+const calcHeight = (fov, positionZ) => {
+    const angle = fov * Math.PI / 180
+    return positionZ * Math.tan(angle / 2) * 2
+}
+
+const height = calcHeight(75, camera.position.z)
+const width = sizes.width / sizes.height * height
+
+
+// Geometry
+const geometry = new THREE.PlaneGeometry(width, height, 32, 32)
+
+// Material
+const material = new THREE.MeshBasicMaterial()
+
+const shaderMaterial = new THREE.ShaderMaterial({
+    vertexShader,
+    fragmentShader
+})
+
+
+// Mesh
+const mesh = new THREE.Mesh(geometry, shaderMaterial)
+scene.add(mesh)
 
 /**
  * Renderer
@@ -104,9 +114,6 @@ const clock = new THREE.Clock()
 
 const tick = () => {
     const elapsedTime = clock.getElapsedTime()
-
-    // Update controls
-    controls.update()
 
     // Render
     renderer.render(scene, camera)
