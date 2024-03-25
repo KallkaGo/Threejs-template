@@ -1,41 +1,30 @@
-# Threejs-template
-threejs template 
-threejs模板(开发学习用)
+# React + TypeScript + Vite
 
-### 1.**包含**
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-**1.场景**
+Currently, two official plugins are available:
 
-**2.摄像机**
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-**3.轨道控制器(已经开启阻尼)**
+## Expanding the ESLint configuration
 
-**4.一个平面(基础网格材质 和 着色器材质)**
+If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
 
-**5.resize**
+- Configure the top-level `parserOptions` property like this:
 
-**6.时钟**
-
-**7.三种噪波贴图**
-
-**8.gui**
-
-**9.纹理，fbx，gltf 加载器**
-
-**10.环境光和平行光**
-
-**11.lygia shader library**
-
-### 2.使用方法
-
-```bash
-# Install dependencies (only the first time)
-npm install
-
-# Run the local server at localhost:8080
-npm run dev
-
-# Build for production in the dist/ directory
-npm run build
+```js
+export default {
+  // other rules...
+  parserOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+    project: ['./tsconfig.json', './tsconfig.node.json'],
+    tsconfigRootDir: __dirname,
+  },
+}
 ```
 
+- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
+- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
+- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
