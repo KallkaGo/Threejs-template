@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { useInteractStore } from "@utils/Store";
 import { Perf } from "r3f-perf";
 import { Leva } from "leva";
-import Sketch from "./components/Sketch/Sketch";
+import Sketch from "./components/Sketch";
 export default function ThreeContainer() {
     const demand = useInteractStore((state) => state.demand);
     return (
@@ -11,12 +11,12 @@ export default function ThreeContainer() {
             <Canvas
                 frameloop={demand ? "never" : "always"}
                 className="webgl"
-                dpr={[1, 2]}
+                dpr={[1, 1]}
                 camera={{
                     fov: 50,
                     near: 0.1,
-                    position: [0, 0, 5],
-                    far: 500,
+                    position: [0, 0, 20],
+                    far: 2000,
                 }}
             >
                 {location.hash.includes("debug") ? (

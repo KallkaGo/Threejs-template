@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import glsl from "vite-plugin-glsl";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { viteVConsole } from 'vite-plugin-vconsole';
+
 
 const isCodeSandbox =
     "SANDBOX_URL" in process.env || "CODESANDBOX_HOST" in process.env;
@@ -9,6 +11,7 @@ const isCodeSandbox =
 // https://vitejs.dev/config/
 export default defineConfig({
     base: "./",
+    publicDir: "static",
     assetsInclude: ["**/*.glb", "**/*.hdr", "**/*.mp3", "**/*.ico"],
     resolve: {
         alias: {
@@ -23,7 +26,7 @@ export default defineConfig({
     server: {
         host: true,
         open: !isCodeSandbox, // Open if it's not a CodeSandbox
-        port: 2333,
+        port: 2345,
     },
     plugins: [
         glsl({
@@ -31,6 +34,15 @@ export default defineConfig({
             watch: true,
         }),
         react(),
+        viteVConsole({
+            entry: path.resolve('src/main.tsx'),
+            enabled: true,
+            config: {
+                maxLogNumber: 1000,
+                theme: 'dark'
+            }
+        })
+
     ],
 
     build: {
