@@ -2,7 +2,9 @@ import { useLayoutEffect } from "react"
 import { Material, Mesh, MeshStandardMaterial, Object3D, WebGLProgramParametersWithUniforms } from "three"
 import CustomShaderMaterial from "three-custom-shader-material/vanilla";
 import { ObjectMap } from "@react-three/fiber";
-import { type GLTF } from 'three-stdlib';
+import { type GLTF } from "three/examples/jsm/Addons.js";
+
+
 
 const useModifyCSM = (gltf: GLTF & ObjectMap, mat: CustomShaderMaterial) => {
   useLayoutEffect(() => {
@@ -31,3 +33,4 @@ export {
   useModifyCSM,
   useModifyMaterial
 }
+
